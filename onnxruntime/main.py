@@ -1,10 +1,11 @@
 import cv2
 import argparse
 import numpy as np
+import time
 import onnxruntime as ort
-
+from mss import mss
 class yolov5():
-    def __init__(self, modelpath, confThreshold=0.5, nmsThreshold=0.5, objThreshold=0.5):
+    def __init__(self, modelpath, confThreshold=0.8, nmsThreshold=0.5, objThreshold=0.8):
         with open('class.names', 'rt') as f:
             self.classes = f.read().rstrip('\n').split('\n')
         self.num_classes = len(self.classes)
@@ -20,9 +21,10 @@ class yolov5():
         self.na = len(anchors[0]) // 2
         self.grid = [np.zeros(1)] * self.nl
         self.anchor_grid = np.asarray(anchors, dtype=np.float32).reshape(self.nl, -1, 2)
-        so = ort.SessionOptions()
-        so.log_severity_level = 3
-        self.net = ort.InferenceSession(modelpath, so)
+        #so = ort.SessionOptions()
+        #print(so)
+        #so.log_severity_level = 3
+        self.net = ort.InferenceSession(modelpath, providers = ['DmlExecutionProvider'])
         self.confThreshold = confThreshold
         self.nmsThreshold = nmsThreshold
         self.objThreshold = objThreshold
@@ -86,7 +88,7 @@ class yolov5():
                     classIds.append(classId)
         # Perform non maximum suppression to eliminate redundant overlapping boxes with
         # lower confidences.
-        indices = cv2.dnn.NMSBoxes(boxes, confidences, self.confThreshold, self.nmsThreshold).flatten()
+        indices = cv2.dnn.NMSBoxes(boxes, confidences, self.confThreshold, self.nmsThreshold)
         for i in indices:
             box = boxes[i]
             left = box[0]
@@ -136,20 +138,47 @@ class yolov5():
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('--imgpath', type=str, default='images/bus.jpg', help="image path")
-    parser.add_argument('--modelpath', type=str, default='weights/yolov5s.onnx')
-    parser.add_argument('--confThreshold', default=0.3, type=float, help='class confidence')
+    parser.add_argument('--imgpath', type=str, default='images/zidane.jpg', help="image path")
+    parser.add_argument('--modelpath', type=str, default='yolov5n.onnx')
+    parser.add_argument('--confThreshold', default=0.5, type=float, help='class confidence')
     parser.add_argument('--nmsThreshold', default=0.5, type=float, help='nms iou thresh')
-    parser.add_argument('--objThreshold', default=0.3, type=float, help='object confidence')
+    parser.add_argument('--objThreshold', default=0.5, type=float, help='object confidence')
     args = parser.parse_args()
 
     yolonet = yolov5(args.modelpath, confThreshold=args.confThreshold, nmsThreshold=args.nmsThreshold,
                      objThreshold=args.objThreshold)
-    srcimg = cv2.imread(args.imgpath)
-    srcimg = yolonet.detect(srcimg)
+    #推理图片
+    # while True:
+    #     srcimg = cv2.imread(args.imgpath)
+    #     srcimg = yolonet.detect(srcimg)
+    #
+    #     winName = 'Deep learning object detection in ONNXRuntime'
+    #     #cv2.namedWindow(winName, 0)
+    #     cv2.imshow("kk", srcimg)
+    #     cv2.waitKey(1000)
+    #     cv2.destroyAllWindows()
 
-    winName = 'Deep learning object detection in ONNXRuntime'
-    cv2.namedWindow(winName, 0)
-    cv2.imshow(winName, srcimg)
-    cv2.waitKey(0)
-    cv2.destroyAllWindows()
+
+    #初始化时间和帧数
+    num_frames = 0
+    start_time = time.time() #开始计算时间
+    monitor = {"top": 0, "left": 0, "width": 800, "height": 700}
+    with mss() as act:
+        while True:
+            screenshot = act.grab(monitor)
+            srcimg = np.array(screenshot)
+            srcimg = cv2.cvtColor(srcimg, cv2.COLOR_RGBA2RGB)
+            #srcimg = srcimg[:, :, :-1]
+            #print(srcimg.shape)
+            #srcimg = cv2.cvtColor(img,  cv2.COLOR_BGRA2BGR)
+            srcimg = yolonet.detect(srcimg)
+            #统计帧数
+            num_frames += 1
+            #统计帧数
+            elapsed_time = time.time() - start_time
+            fps = num_frames / elapsed_time
+
+            #将fps显示到图像种
+            cv2.putText(srcimg, "FPS : {:.2f}".format(fps), (10, 50), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
+            cv2.imshow('img', srcimg)
+            cv2.waitKey(100)
