@@ -17,3 +17,9 @@ yolov5s6，yolov5m6，yolov5l6，yolov5n6，yolov5x6的十种结构的yolov5-v6.
 转换生成onnx文件的方法，可以参考我的csdn博客文章
 https://blog.csdn.net/nihate/article/details/112731327
 或者知乎文章 https://zhuanlan.zhihu.com/p/466677699
+
+# yolov5最好得教程 【【手把手带你实战YOLOv5-入门篇】YOLOv5 环境安装（重置版）】
+https://www.bilibili.com/video/BV1bg4y1R7cs?vd_source=6a00f0fa93fff592d1cd4c61ab337819
+
+# colab运行yolo
+【在google colab进行yolov5模型训练，免费使用GPU资源】https://www.bilibili.com/video/BV1YK4y1E7zd?vd_source=6a00f0fa93fff592d1cd4c61ab337819
